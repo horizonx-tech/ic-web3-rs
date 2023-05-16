@@ -1,0 +1,93 @@
+[package]
+name = "ic-web3"
+version = "0.1.7"
+description = "Ethereum JSON-RPC client for IC canisters."
+homepage = "https://github.com/rocklabs-io/ic-web3"
+repository = "https://github.com/rocklabs-io/ic-web3"
+documentation = "https://docs.rs/ic-web3"
+license = "MIT"
+keywords = ["dfinity", "icp", "web3", "ethereum", "rpc"]
+authors = ["Tomasz Drwięga <tomasz@parity.io>", "Rocklabs <hello@rocklabs.io>"]
+readme = "README.md"
+edition = "2018"
+
+[dependencies]
+arrayvec = "0.7.1"
+derive_more = "0.99.1"
+ethabi = "17.0.0"
+ethereum-types = "0.13.0"
+libsecp256k1 = { version = "0.7.1", features = ["lazy-static-context"] }
+futures = "0.3.5"
+hex = "0.4"
+#idna = "0.2"
+jsonrpc-core = "18.0.0"
+#log = "0.4.6"
+parking_lot = "0.12.0"
+rlp = "0.5"
+serde = { version = "1.0.90", features = ["derive"] }
+serde_json = "1.0.39"
+tiny-keccak = { version = "2.0.1", features = ["keccak"] }
+pin-project = "1.0"
+# ic related
+ic-cdk = "0.7.3"
+ic-cdk-macros = "0.6"
+candid = "0.8.0"
+
+
+# Optional deps
+# secp256k1 = { version = "0.21", features = ["recovery"], optional = true }
+# once_cell = { version = "1.8.0", optional = true }
+
+## HTTP
+#base64 = { version = "0.13", optional = true }
+#bytes = { version = "1.0", optional = true }
+#reqwest = { version = "0.11", optional = true, default-features = false, features = ["json"] }
+headers = { version = "0.3", optional = true }
+## WS
+# async-native-tls = { git = "https://github.com/async-email/async-native-tls.git", rev = "b5b5562d6cea77f913d4cbe448058c031833bf17", optional = true, default-features = false }
+# Temporarily use forked version released to crates.io
+async-native-tls = { package = "web3-async-native-tls", version = "0.4", optional = true, default-features = false }
+async-std = { version = "1.6", optional = true }
+tokio = { version = "1.0", optional = true, features = ["full"] }
+tokio-stream = { version = "0.1", optional = true }
+tokio-util = { version = "0.7", optional = true, features = ["compat", "io"] }
+soketto = { version = "0.7.0", optional = true }
+## Shared (WS, HTTP)
+url = { version = "2.1", optional = true }
+## EIP-1193
+js-sys = { version = "0.3.45", optional = true }
+### This is a transitive dependency, only here so we can turn on its wasm_bindgen feature
+rand = { version = "0.8.1", optional = true }
+getrandom = { version = "0.2", features = ["custom"] }
+wasm-bindgen = { version = "0.2.68", optional = true, features = ["serde-serialize"] }
+wasm-bindgen-futures = { version = "0.4.18", optional = true }
+
+[dev-dependencies]
+# For examples
+env_logger = "0.9"
+hex-literal = "0.3"
+wasm-bindgen-test = "0.3.19"
+
+#[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+#hyper = { version = "0.14", default-features = false, features = ["server"] }
+#tokio = { version = "1.0", features = ["full"] }
+#tokio-stream = { version = "0.1", features = ["net"] }
+
+[features]
+default = []
+wasm = ["js-sys", "wasm-bindgen", "wasm-bindgen-futures"]
+eip-1193 = ["wasm"]
+#_http_base = ["reqwest", "bytes", "url", "base64", "headers"]
+#http = ["_http_base"]
+#http-tls = ["http", "reqwest/default-tls"]
+#http-native-tls = ["http", "reqwest/native-tls"]
+#http-rustls-tls = ["http", "reqwest/rustls-tls"]
+#ws-tokio = ["soketto", "url", "tokio", "tokio-util", "headers"]
+#ws-async-std = ["soketto", "url", "async-std", "headers"]
+#ws-tls-tokio = ["async-native-tls", "async-native-tls/runtime-tokio", "ws-tokio"]
+#ws-tls-async-std = ["async-native-tls", "async-native-tls/runtime-async-std", "ws-async-std"]
+#ipc-tokio = ["tokio", "tokio-stream", "tokio-util"]
+#arbitrary_precision = ["serde_json/arbitrary_precision", "jsonrpc-core/arbitrary_precision"]
+#test = []
+
+[workspace]

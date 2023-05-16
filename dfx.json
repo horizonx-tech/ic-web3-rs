@@ -1,0 +1,29 @@
+{
+  "canisters": {
+    "eth": {
+      "candid": "examples/ic_web3.did",
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/examples/example_opt.wasm",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --example example --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/examples/example.wasm -o target/wasm32-unknown-unknown/release/examples/example_opt.wasm"
+      ]
+    },
+    "endpoint": {
+      "candid": "examples/endpoint.did",
+      "type": "custom",
+      "wasm": "target/wasm32-unknown-unknown/release/examples/endpoint_opt.wasm",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --example endpoint --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/examples/endpoint.wasm -o target/wasm32-unknown-unknown/release/examples/endpoint_opt.wasm"
+      ]
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}
