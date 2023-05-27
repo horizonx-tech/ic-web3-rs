@@ -5,12 +5,12 @@ use crate::{
     confirm,
     contract::tokens::{Detokenize, Tokenize},
     futures::Future,
+    ic::KeyInfo,
     types::{
-        AccessList, Address, BlockId, Bytes, CallRequest, FilterBuilder, TransactionCondition, TransactionReceipt,
-        TransactionRequest, H256, U256, U64,
+        AccessList, Address, BlockId, Bytes, CallRequest, FilterBuilder, TransactionCondition, TransactionParameters,
+        TransactionReceipt, TransactionRequest, H256, U256, U64,
     },
     Transport,
-    ic::KeyInfo,
 };
 use std::{collections::HashMap, hash::Hash, time};
 
@@ -227,6 +227,26 @@ impl<T: Transport> Contract<T> {
             .await
             .map_err(Into::into)
     }
+    pub async fn _estimate_gas(&self, from: Address, tx: &TransactionParameters) -> Result<U256> {
+        self.eth
+            .estimate_gas(
+                CallRequest {
+                    from: Some(from),
+                    to: tx.to,
+                    gas: None,
+                    gas_price: tx.gas_price,
+                    value: Some(tx.value),
+                    data: Some(tx.data.clone()),
+                    transaction_type: tx.transaction_type,
+                    access_list: tx.access_list.clone(),
+                    max_fee_per_gas: tx.max_fee_per_gas,
+                    max_priority_fee_per_gas: tx.max_priority_fee_per_gas,
+                },
+                None,
+            )
+            .await
+            .map_err(Into::into)
+    }
 
     /// Call constant function
     pub fn query<R, A, B, P>(
@@ -328,6 +348,8 @@ impl<T: Transport> Contract<T> {
 
 // #[cfg(feature = "signing")]
 mod contract_signing {
+    use std::str::FromStr;
+
     use super::*;
     use crate::{
         api::Accounts,
@@ -365,6 +387,11 @@ mod contract_signing {
             };
             if let Some(gas) = options.gas {
                 tx.gas = gas;
+            } else {
+                tx.gas = self
+                    ._estimate_gas(Address::from_str(&from.to_string().as_str()).unwrap(), &tx)
+                    .await
+                    .unwrap();
             }
             if let Some(value) = options.value {
                 tx.value = value;
