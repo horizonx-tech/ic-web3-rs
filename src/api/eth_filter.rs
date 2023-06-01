@@ -147,20 +147,6 @@ impl<T: Transport> BaseFilter<T, Log> {
     }
 }
 
-/// Should be used to create new filter future
-async fn create_filter<T: Transport, F: FilterInterface>(
-    transport: T,
-    arg: Vec<rpc::Value>,
-) -> error::Result<BaseFilter<T, F::Output>> {
-    let response = transport.execute(F::constructor(), arg).await?;
-    let id = helpers::decode(response)?;
-    Ok(BaseFilter {
-        id,
-        transport,
-        item: PhantomData,
-    })
-}
-
 /// `Eth` namespace, filters
 #[derive(Debug, Clone)]
 pub struct EthFilter<T> {
