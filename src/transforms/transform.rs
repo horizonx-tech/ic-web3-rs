@@ -8,7 +8,7 @@ pub struct TransformProcessor {
 }
 
 impl TransformProcessor {
-    pub fn send_processor() -> Self {
+    pub fn send_transaction_processor() -> Self {
         TransformProcessorBuilder::default()
             .transaction_index(true)
             .build()
@@ -108,7 +108,7 @@ pub mod tests {
                 response: response,
                 context: vec![],
             };
-            let got = TransformProcessor::send_processor().transform(args);
+            let got = TransformProcessor::send_transaction_processor().transform(args);
             let want_json = serde_json::from_str::<serde_json::Value>(&case.want).unwrap();
             let got_json = serde_json::from_slice::<serde_json::Value>(&got.body).unwrap();
             assert_eq!(got_json, want_json);
