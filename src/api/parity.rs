@@ -2,6 +2,7 @@ use crate::{
     api::Namespace,
     helpers::{self, CallFuture},
     rpc::Value,
+    transports::ic_http_client::CallOptions,
     types::{Bytes, CallRequest, ParityPendingTransactionFilter, Transaction},
     Transport,
 };
@@ -27,10 +28,10 @@ impl<T: Transport> Namespace<T> for Parity<T> {
 
 impl<T: Transport> Parity<T> {
     /// Sequentially call multiple contract methods in one request without changing the state of the blockchain.
-    pub fn call(&self, reqs: Vec<CallRequest>) -> CallFuture<Vec<Bytes>, T::Out> {
+    pub fn call(&self, reqs: Vec<CallRequest>, options: CallOptions) -> CallFuture<Vec<Bytes>, T::Out> {
         let reqs = helpers::serialize(&reqs);
 
-        CallFuture::new(self.transport.execute("parity_call", vec![reqs]))
+        CallFuture::new(self.transport.execute("parity_call", vec![reqs], options))
     }
 
     /// Get pending transactions
@@ -39,6 +40,7 @@ impl<T: Transport> Parity<T> {
         &self,
         limit: Option<usize>,
         filter: Option<ParityPendingTransactionFilter>,
+        options: CallOptions,
     ) -> CallFuture<Vec<Transaction>, T::Out> {
         let limit = limit.map(Value::from);
         let filter = filter.as_ref().map(helpers::serialize);
@@ -48,7 +50,7 @@ impl<T: Transport> Parity<T> {
             _ => vec![],
         };
 
-        CallFuture::new(self.transport.execute("parity_pendingTransactions", params))
+        CallFuture::new(self.transport.execute("parity_pendingTransactions", params, options))
     }
 }
 
@@ -58,6 +60,7 @@ mod tests {
     use crate::{
         api::Namespace,
         rpc::Value,
+        transports::ic_http_client::CallOptions,
         types::{Address, CallRequest, FilterCondition, ParityPendingTransactionFilter, Transaction, U64},
     };
     use hex_literal::hex;
@@ -126,7 +129,7 @@ mod tests {
                 max_fee_per_gas: None,
                 max_priority_fee_per_gas: None,
             }
-        ] => "parity_call", vec![
+        ],CallOptions::default() => "parity_call", vec![
             r#"[{"to":"0x0000000000000000000000000000000000000123","value":"0x1"},{"data":"0x0493","from":"0x0000000000000000000000000000000000000321","to":"0x0000000000000000000000000000000000000123"},{"data":"0x0723","to":"0x0000000000000000000000000000000000000765","value":"0x5"}]"#
         ];
         Value::Array(vec![Value::String("0x010203".into()), Value::String("0x7198ab".into()), Value::String("0xde763f".into())]) => vec![hex!("010203").into(), hex!("7198ab").into(), hex!("de763f").into()]
@@ -139,7 +142,7 @@ mod tests {
             .from(Address::from_low_u64_be(0x32))
             .gas(U64::from(100_000))
             .gas_price(FilterCondition::GreaterThan(U64::from(100_000_000_000_u64)))
-            .build()
+            .build(),CallOptions::default()
          => "parity_pendingTransactions",
             vec![r#"1"#, r#"{"from":{"eq":"0x0000000000000000000000000000000000000032"},"gas":{"eq":"0x186a0"},"gas_price":{"gt":"0x174876e800"}}"#]
         ;

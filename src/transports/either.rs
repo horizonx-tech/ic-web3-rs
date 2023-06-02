@@ -5,6 +5,9 @@ use futures::{
     future::{BoxFuture, FutureExt},
     stream::{BoxStream, StreamExt},
 };
+use ic_cdk::api::management_canister::http_request::TransformContext;
+
+use super::ic_http_client::CallOptions;
 
 /// A wrapper over two possible transports.
 ///
@@ -36,10 +39,10 @@ where
         }
     }
 
-    fn send(&self, id: RequestId, request: rpc::Call) -> Self::Out {
+    fn send(&self, id: RequestId, request: rpc::Call, options: CallOptions) -> Self::Out {
         match *self {
-            Self::Left(ref a) => a.send(id, request).boxed(),
-            Self::Right(ref b) => b.send(id, request).boxed(),
+            Self::Left(ref a) => a.send(id, request, options).boxed(),
+            Self::Right(ref b) => b.send(id, request, options).boxed(),
         }
     }
 

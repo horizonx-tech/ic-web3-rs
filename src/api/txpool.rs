@@ -3,6 +3,7 @@
 use crate::{
     api::Namespace,
     helpers::CallFuture,
+    transports::ic_http_client::CallOptions,
     types::{TxpoolContentInfo, TxpoolInspectInfo, TxpoolStatus},
     Transport,
 };
@@ -28,26 +29,29 @@ impl<T: Transport> Namespace<T> for Txpool<T> {
 
 impl<T: Transport> Txpool<T> {
     /// returns txpool content info
-    pub fn content(&self) -> CallFuture<TxpoolContentInfo, T::Out> {
-        CallFuture::new(self.transport.execute("txpool_content", vec![]))
+    pub fn content(&self, options: CallOptions) -> CallFuture<TxpoolContentInfo, T::Out> {
+        CallFuture::new(self.transport.execute("txpool_content", vec![], options))
     }
 
     /// returns txpool inspect info
-    pub fn inspect(&self) -> CallFuture<TxpoolInspectInfo, T::Out> {
-        CallFuture::new(self.transport.execute("txpool_inspect", vec![]))
+    pub fn inspect(&self, options: CallOptions) -> CallFuture<TxpoolInspectInfo, T::Out> {
+        CallFuture::new(self.transport.execute("txpool_inspect", vec![], options))
     }
 
     /// returns txpool status
-    pub fn status(&self) -> CallFuture<TxpoolStatus, T::Out> {
-        CallFuture::new(self.transport.execute("txpool_status", vec![]))
+    pub fn status(&self, options: CallOptions) -> CallFuture<TxpoolStatus, T::Out> {
+        CallFuture::new(self.transport.execute("txpool_status", vec![], options))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use serde_json::Value;
+
     use super::Txpool;
     use crate::{
         api::Namespace,
+        transports::ic_http_client::CallOptions,
         types::{TxpoolContentInfo, TxpoolInspectInfo, TxpoolStatus},
     };
 
@@ -187,19 +191,19 @@ mod tests {
     }"#;
 
     rpc_test! (
-      Txpool:content => "txpool_content";
+      Txpool:content,CallOptions::default() => "txpool_content",Vec::<String>::new();
       ::serde_json::from_str(EXAMPLE_CONTENT_INFO).unwrap()
       => ::serde_json::from_str::<TxpoolContentInfo>(EXAMPLE_CONTENT_INFO).unwrap()
     );
 
     rpc_test! (
-      Txpool:inspect => "txpool_inspect";
+      Txpool:inspect,CallOptions::default() => "txpool_inspect",Vec::<String>::new();
       ::serde_json::from_str(EXAMPLE_INSPECT_INFO).unwrap()
       => ::serde_json::from_str::<TxpoolInspectInfo>(EXAMPLE_INSPECT_INFO).unwrap()
     );
 
     rpc_test! (
-      Txpool:status => "txpool_status";
+      Txpool:status,CallOptions::default() => "txpool_status",Vec::<String>::new();
       ::serde_json::from_str(EXAMPLE_STATUS).unwrap()
       => ::serde_json::from_str::<TxpoolStatus>(EXAMPLE_STATUS).unwrap()
     );

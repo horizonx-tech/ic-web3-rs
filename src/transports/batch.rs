@@ -9,8 +9,11 @@ use futures::{
     task::{Context, Poll},
     Future, FutureExt,
 };
+use ic_cdk::api::management_canister::http_request::TransformContext;
 use parking_lot::Mutex;
 use std::{collections::BTreeMap, pin::Pin, sync::Arc};
+
+use super::ic_http_client::CallOptions;
 
 type Pending = oneshot::Sender<error::Result<rpc::Value>>;
 type PendingRequests = Arc<Mutex<BTreeMap<RequestId, Pending>>>;
@@ -72,7 +75,7 @@ where
         self.transport.prepare(method, params)
     }
 
-    fn send(&self, id: RequestId, request: rpc::Call) -> Self::Out {
+    fn send(&self, id: RequestId, request: rpc::Call, options: CallOptions) -> Self::Out {
         let (tx, rx) = oneshot::channel();
         self.pending.lock().insert(id, tx);
         self.batch.lock().push((id, request));

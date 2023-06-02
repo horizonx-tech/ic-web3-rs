@@ -12,10 +12,10 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unused_imports)]
-
 // select! in WS transport
 #![recursion_limit = "256"]
 
+use ic_cdk::api::management_canister::http_request::TransformContext;
 use jsonrpc_core as rpc;
 
 /// Re-export of the `futures` crate.
@@ -24,6 +24,7 @@ pub extern crate futures;
 pub use futures::executor::{block_on, block_on_stream};
 
 pub use ethabi;
+use transports::ic_http_client::CallOptions;
 
 // it needs to be before other modules
 // otherwise the macro for tests is not available.
@@ -34,10 +35,10 @@ pub mod api;
 pub mod confirm;
 pub mod contract;
 pub mod error;
+pub mod ic;
 pub mod signing;
 pub mod transports;
 pub mod types;
-pub mod ic;
 // pub mod tx_helpers;
 
 pub use crate::{
@@ -59,12 +60,12 @@ pub trait Transport: std::fmt::Debug + Clone {
     fn prepare(&self, method: &str, params: Vec<rpc::Value>) -> (RequestId, rpc::Call);
 
     /// Execute prepared RPC call.
-    fn send(&self, id: RequestId, request: rpc::Call) -> Self::Out;
+    fn send(&self, id: RequestId, request: rpc::Call, options: CallOptions) -> Self::Out;
 
     /// Execute remote method with given parameters.
-    fn execute(&self, method: &str, params: Vec<rpc::Value>) -> Self::Out {
+    fn execute(&self, method: &str, params: Vec<rpc::Value>, options: CallOptions) -> Self::Out {
         let (id, request) = self.prepare(method, params);
-        self.send(id, request)
+        self.send(id, request, options)
     }
 
     /// set the max response bytes, do nothing by default
@@ -107,8 +108,8 @@ where
         (**self).prepare(method, params)
     }
 
-    fn send(&self, id: RequestId, request: rpc::Call) -> Self::Out {
-        (**self).send(id, request)
+    fn send(&self, id: RequestId, request: rpc::Call, options: CallOptions) -> Self::Out {
+        (**self).send(id, request, options)
     }
 }
 
@@ -151,8 +152,9 @@ where
 mod tests {
     use super::{error, rpc, RequestId, Transport};
 
-    use crate::api::Web3;
+    use crate::{api::Web3, transports::ic_http_client::CallOptions};
     use futures::future::BoxFuture;
+    use ic_cdk::api::management_canister::http_request::TransformContext;
     use std::sync::Arc;
 
     #[derive(Debug, Clone)]
@@ -165,7 +167,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn send(&self, _id: RequestId, _request: rpc::Call) -> Self::Out {
+        fn send(&self, _id: RequestId, _request: rpc::Call, options: CallOptions) -> Self::Out {
             unimplemented!()
         }
     }

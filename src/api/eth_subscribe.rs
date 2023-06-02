@@ -3,6 +3,7 @@
 use crate::{
     api::Namespace,
     error, helpers,
+    transports::ic_http_client::CallOptions,
     types::{BlockHeader, Filter, Log, SyncState, H256},
     DuplexTransport,
 };
@@ -72,10 +73,10 @@ impl<T: DuplexTransport, I> SubscriptionStream<T, I> {
     }
 
     /// Unsubscribe from the event represented by this stream
-    pub async fn unsubscribe(self) -> error::Result<bool> {
+    pub async fn unsubscribe(self, options: CallOptions) -> error::Result<bool> {
         let &SubscriptionId(ref id) = &self.id;
         let id = helpers::serialize(&id);
-        let response = self.transport.execute("eth_unsubscribe", vec![id]).await?;
+        let response = self.transport.execute("eth_unsubscribe", vec![id], options).await?;
         helpers::decode(response)
     }
 }
@@ -106,37 +107,53 @@ where
 
 impl<T: DuplexTransport> EthSubscribe<T> {
     /// Create a new heads subscription
-    pub async fn subscribe_new_heads(&self) -> error::Result<SubscriptionStream<T, BlockHeader>> {
+    pub async fn subscribe_new_heads(&self, options: CallOptions) -> error::Result<SubscriptionStream<T, BlockHeader>> {
         let subscription = helpers::serialize(&&"newHeads");
-        let response = self.transport.execute("eth_subscribe", vec![subscription]).await?;
+        let response = self
+            .transport
+            .execute("eth_subscribe", vec![subscription], options)
+            .await?;
         let id: String = helpers::decode(response)?;
         SubscriptionStream::new(self.transport.clone(), SubscriptionId(id))
     }
 
     /// Create a logs subscription
-    pub async fn subscribe_logs(&self, filter: Filter) -> error::Result<SubscriptionStream<T, Log>> {
+    pub async fn subscribe_logs(
+        &self,
+        filter: Filter,
+        options: CallOptions,
+    ) -> error::Result<SubscriptionStream<T, Log>> {
         let subscription = helpers::serialize(&&"logs");
         let filter = helpers::serialize(&filter);
         let response = self
             .transport
-            .execute("eth_subscribe", vec![subscription, filter])
+            .execute("eth_subscribe", vec![subscription, filter], options)
             .await?;
         let id: String = helpers::decode(response)?;
         SubscriptionStream::new(self.transport.clone(), SubscriptionId(id))
     }
 
     /// Create a pending transactions subscription
-    pub async fn subscribe_new_pending_transactions(&self) -> error::Result<SubscriptionStream<T, H256>> {
+    pub async fn subscribe_new_pending_transactions(
+        &self,
+        options: CallOptions,
+    ) -> error::Result<SubscriptionStream<T, H256>> {
         let subscription = helpers::serialize(&&"newPendingTransactions");
-        let response = self.transport.execute("eth_subscribe", vec![subscription]).await?;
+        let response = self
+            .transport
+            .execute("eth_subscribe", vec![subscription], options)
+            .await?;
         let id: String = helpers::decode(response)?;
         SubscriptionStream::new(self.transport.clone(), SubscriptionId(id))
     }
 
     /// Create a sync status subscription
-    pub async fn subscribe_syncing(&self) -> error::Result<SubscriptionStream<T, SyncState>> {
+    pub async fn subscribe_syncing(&self, options: CallOptions) -> error::Result<SubscriptionStream<T, SyncState>> {
         let subscription = helpers::serialize(&&"syncing");
-        let response = self.transport.execute("eth_subscribe", vec![subscription]).await?;
+        let response = self
+            .transport
+            .execute("eth_subscribe", vec![subscription], options)
+            .await?;
         let id: String = helpers::decode(response)?;
         SubscriptionStream::new(self.transport.clone(), SubscriptionId(id))
     }

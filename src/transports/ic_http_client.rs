@@ -1,14 +1,13 @@
 //! IC http client
 
-use serde::{self, Deserialize, Serialize};
 use candid::CandidType;
-use jsonrpc_core::Request;
-use candid::{Principal, candid_method};
+use candid::{candid_method, Principal};
+use derive_builder::Builder;
 use ic_cdk::api::management_canister::http_request::{
-    CanisterHttpRequestArgument, HttpHeader, HttpMethod, 
-    HttpResponse, http_request,
-    TransformFunc, TransformContext, 
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformContext, TransformFunc,
 };
+use jsonrpc_core::Request;
+use serde::{self, Deserialize, Serialize};
 
 // #[derive(CandidType, Deserialize, Debug)]
 // pub struct CanisterHttpRequestArgs {
@@ -25,6 +24,13 @@ pub struct ICHttpClient {
     pub max_response_bytes: u64,
 }
 
+#[derive(Builder, Default, Clone, Debug, PartialEq, Eq)]
+pub struct CallOptions {
+    max_resp: Option<u64>,
+    cycles: Option<u64>,
+    transform: Option<TransformContext>,
+}
+
 impl ICHttpClient {
     pub fn new(max_resp: Option<u64>) -> Self {
         ICHttpClient {
@@ -37,17 +43,20 @@ impl ICHttpClient {
     }
 
     async fn request(
-        &self, 
+        &self,
         url: String,
-        req_type: HttpMethod, 
-        req_headers: Vec<HttpHeader>, 
+        req_type: HttpMethod,
+        req_headers: Vec<HttpHeader>,
         payload: &Request,
-        max_resp: Option<u64>,
-        cycles: Option<u64>
+        options: CallOptions,
     ) -> Result<Vec<u8>, String> {
         let request = CanisterHttpRequestArgument {
             url: url.clone(),
-            max_response_bytes: if let Some(v) = max_resp { Some(v) } else { Some(self.max_response_bytes) },
+            max_response_bytes: if let Some(v) = options.max_resp {
+                Some(v)
+            } else {
+                Some(self.max_response_bytes)
+            },
             method: req_type,
             headers: req_headers,
             body: Some(serde_json::to_vec(&payload).unwrap()),
@@ -55,48 +64,45 @@ impl ICHttpClient {
             //     principal: ic_cdk::api::id(),
             //     method: "transform".to_string(),
             // }))),
-            transform: Some(TransformContext {
-                function: TransformFunc(candid::Func {
+            transform: match options.transform {
+                Some(t) => Some(t),
+                None => Some(TransformContext {
+                    function: TransformFunc(candid::Func {
                         principal: ic_cdk::api::id(),
                         method: "transform".to_string(),
                     }),
-                context: vec![],
-            }),
+                    context: vec![],
+                }),
+            },
         };
 
         match http_request(request).await {
-            Ok((result, )) => {
-                Ok(result.body)
-            }
+            Ok((result,)) => Ok(result.body),
             Err((r, m)) => {
-                let message =
-                    format!("The http_request resulted into error. RejectionCode: {r:?}, Error: {m}");
+                let message = format!("The http_request resulted into error. RejectionCode: {r:?}, Error: {m}");
                 ic_cdk::api::print(message.clone());
                 Err(message)
             }
         }
     }
 
-    pub async fn get(&self, url: String, payload: &Request, max_resp: Option<u64>, cycles: Option<u64>) -> Result<Vec<u8>, String> {
-        let request_headers = vec![
-            HttpHeader {
-                name: "Content-Type".to_string(),
-                value: "application/json".to_string(),
-            },
-        ];
+    pub async fn get(&self, url: String, payload: &Request, options: CallOptions) -> Result<Vec<u8>, String> {
+        let request_headers = vec![HttpHeader {
+            name: "Content-Type".to_string(),
+            value: "application/json".to_string(),
+        }];
 
-        self.request(url, HttpMethod::GET, request_headers, payload, max_resp, cycles).await
+        self.request(url, HttpMethod::GET, request_headers, payload, options)
+            .await
     }
 
-    pub async fn post(&self, url: String, payload: &Request, max_resp: Option<u64>, cycles: Option<u64>) -> Result<Vec<u8>, String> {
-        let request_headers = vec![
-            HttpHeader {
-                name: "Content-Type".to_string(),
-                value: "application/json".to_string(),
-            },
-        ];
+    pub async fn post(&self, url: String, payload: &Request, options: CallOptions) -> Result<Vec<u8>, String> {
+        let request_headers = vec![HttpHeader {
+            name: "Content-Type".to_string(),
+            value: "application/json".to_string(),
+        }];
 
-        self.request(url, HttpMethod::POST, request_headers, payload, max_resp, cycles).await
+        self.request(url, HttpMethod::POST, request_headers, payload, options)
+            .await
     }
 }
-

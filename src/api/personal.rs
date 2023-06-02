@@ -3,6 +3,7 @@
 use crate::{
     api::Namespace,
     helpers::{self, CallFuture},
+    transports::ic_http_client::CallOptions,
     types::{Address, Bytes, RawTransaction, TransactionRequest, H256, H520},
     Transport,
 };
@@ -28,37 +29,48 @@ impl<T: Transport> Namespace<T> for Personal<T> {
 
 impl<T: Transport> Personal<T> {
     /// Returns a list of available accounts.
-    pub fn list_accounts(&self) -> CallFuture<Vec<Address>, T::Out> {
-        CallFuture::new(self.transport.execute("personal_listAccounts", vec![]))
+    pub fn list_accounts(&self, options: CallOptions) -> CallFuture<Vec<Address>, T::Out> {
+        CallFuture::new(self.transport.execute("personal_listAccounts", vec![], options))
     }
 
     /// Creates a new account and protects it with given password.
     /// Returns the address of created account.
-    pub fn new_account(&self, password: &str) -> CallFuture<Address, T::Out> {
+    pub fn new_account(&self, password: &str, options: CallOptions) -> CallFuture<Address, T::Out> {
         let password = helpers::serialize(&password);
-        CallFuture::new(self.transport.execute("personal_newAccount", vec![password]))
+        CallFuture::new(self.transport.execute("personal_newAccount", vec![password], options))
     }
 
     /// Unlocks the account with given password for some period of time (or single transaction).
     /// Returns `true` if the call was successful.
-    pub fn unlock_account(&self, address: Address, password: &str, duration: Option<u16>) -> CallFuture<bool, T::Out> {
+    pub fn unlock_account(
+        &self,
+        address: Address,
+        password: &str,
+        duration: Option<u16>,
+        options: CallOptions,
+    ) -> CallFuture<bool, T::Out> {
         let address = helpers::serialize(&address);
         let password = helpers::serialize(&password);
         let duration = helpers::serialize(&duration);
         CallFuture::new(
             self.transport
-                .execute("personal_unlockAccount", vec![address, password, duration]),
+                .execute("personal_unlockAccount", vec![address, password, duration], options),
         )
     }
 
     /// Sends a transaction from locked account.
     /// Returns transaction hash.
-    pub fn send_transaction(&self, transaction: TransactionRequest, password: &str) -> CallFuture<H256, T::Out> {
+    pub fn send_transaction(
+        &self,
+        transaction: TransactionRequest,
+        password: &str,
+        options: CallOptions,
+    ) -> CallFuture<H256, T::Out> {
         let transaction = helpers::serialize(&transaction);
         let password = helpers::serialize(&password);
         CallFuture::new(
             self.transport
-                .execute("personal_sendTransaction", vec![transaction, password]),
+                .execute("personal_sendTransaction", vec![transaction, password], options),
         )
     }
 
@@ -66,11 +78,20 @@ impl<T: Transport> Personal<T> {
     ///
     /// The account does not need to be unlocked to make this call, and will not be left unlocked after.
     /// Returns encoded signature.
-    pub fn sign(&self, data: Bytes, account: Address, password: &str) -> CallFuture<H520, T::Out> {
+    pub fn sign(
+        &self,
+        data: Bytes,
+        account: Address,
+        password: &str,
+        options: CallOptions,
+    ) -> CallFuture<H520, T::Out> {
         let data = helpers::serialize(&data);
         let address = helpers::serialize(&account);
         let password = helpers::serialize(&password);
-        CallFuture::new(self.transport.execute("personal_sign", vec![data, address, password]))
+        CallFuture::new(
+            self.transport
+                .execute("personal_sign", vec![data, address, password], options),
+        )
     }
 
     /// Signs a transaction without dispatching it to the network.
@@ -80,25 +101,31 @@ impl<T: Transport> Personal<T> {
         &self,
         transaction: TransactionRequest,
         password: &str,
+        options: CallOptions,
     ) -> CallFuture<RawTransaction, T::Out> {
         let transaction = helpers::serialize(&transaction);
         let password = helpers::serialize(&password);
         CallFuture::new(
             self.transport
-                .execute("personal_signTransaction", vec![transaction, password]),
+                .execute("personal_signTransaction", vec![transaction, password], options),
         )
     }
 
     /// Imports a raw key and protects it with the given password.
     /// Returns the address of created account.
-    pub fn import_raw_key(&self, private_key: &[u8; 32], password: &str) -> CallFuture<Address, T::Out> {
+    pub fn import_raw_key(
+        &self,
+        private_key: &[u8; 32],
+        password: &str,
+        options: CallOptions,
+    ) -> CallFuture<Address, T::Out> {
         let private_key = hex::encode(private_key);
         let private_key = helpers::serialize(&private_key);
         let password = helpers::serialize(&password);
 
         CallFuture::new(
             self.transport
-                .execute("personal_importRawKey", vec![private_key, password]),
+                .execute("personal_importRawKey", vec![private_key, password], options),
         )
     }
 }
@@ -109,6 +136,7 @@ mod tests {
     use crate::{
         api::Namespace,
         rpc::Value,
+        transports::ic_http_client::CallOptions,
         types::{Address, Bytes, RawTransaction, TransactionRequest, H160, H520},
     };
     use hex_literal::hex;
@@ -131,17 +159,17 @@ mod tests {
   }"#;
 
     rpc_test! (
-      Personal:list_accounts => "personal_listAccounts";
+      Personal:list_accounts,CallOptions::default() => "personal_listAccounts",Vec::<String>::new();
       Value::Array(vec![Value::String("0x0000000000000000000000000000000000000123".into())]) => vec![Address::from_low_u64_be(0x123)]
     );
 
     rpc_test! (
-      Personal:new_account, "hunter2" => "personal_newAccount", vec![r#""hunter2""#];
+      Personal:new_account, "hunter2",CallOptions::default() => "personal_newAccount", vec![r#""hunter2""#];
       Value::String("0x0000000000000000000000000000000000000123".into()) => Address::from_low_u64_be(0x123)
     );
 
     rpc_test! (
-      Personal:unlock_account, Address::from_low_u64_be(0x123), "hunter2", None
+      Personal:unlock_account, Address::from_low_u64_be(0x123), "hunter2", None,CallOptions::default()
       =>
       "personal_unlockAccount", vec![r#""0x0000000000000000000000000000000000000123""#, r#""hunter2""#, r#"null"#];
       Value::Bool(true) => true
@@ -155,7 +183,7 @@ mod tests {
         nonce: None, condition: None,
         transaction_type: None, access_list: None,
         max_fee_per_gas: None, max_priority_fee_per_gas: None,
-      }, "hunter2"
+      }, "hunter2",CallOptions::default()
       =>
       "personal_sendTransaction", vec![r#"{"from":"0x0000000000000000000000000000000000000123","gasPrice":"0x1","to":"0x0000000000000000000000000000000000000123","value":"0x1"}"#, r#""hunter2""#];
       Value::String("0x0000000000000000000000000000000000000000000000000000000000000123".into()) => Address::from_low_u64_be(0x123)
@@ -175,7 +203,7 @@ mod tests {
         access_list: None,
         max_fee_per_gas: None,
         max_priority_fee_per_gas: None,
-      }, "hunter2"
+      }, "hunter2",CallOptions::default()
       =>
       "personal_signTransaction", vec![r#"{"data":"0x603880600c6000396000f300603880600c6000396000f3603880600c6000396000f360","from":"0x407d73d8a49eeb85d32cf465507dd71d507100c1","gas":"0x7f110","gasPrice":"0x9184e72a000","nonce":"0x0","to":"0x853f43d8a49eeb85d32cf465507dd71d507100c1","value":"0x7f110"}"#, r#""hunter2""#];
       ::serde_json::from_str(EXAMPLE_TX).unwrap()
@@ -183,13 +211,13 @@ mod tests {
     );
 
     rpc_test! {
-      Personal:import_raw_key, &[0u8; 32], "hunter2" =>
+      Personal:import_raw_key, &[0u8; 32], "hunter2",CallOptions::default() =>
       "personal_importRawKey", vec![r#""0000000000000000000000000000000000000000000000000000000000000000""#, r#""hunter2""#];
       Value::String("0x0000000000000000000000000000000000000123".into()) => Address::from_low_u64_be(0x123)
     }
 
     rpc_test! {
-      Personal:sign, Bytes(hex!("7f0d39b8347598e20466233ce2fb3e824f0f93dfbf233125d3ab09b172c62591ec24dc84049242e364895c3abdbbd843d4a0a188").to_vec()), H160(hex!("7f0d39b8347598e20466233ce2fb3e824f0f93df")), "hunter2"
+      Personal:sign, Bytes(hex!("7f0d39b8347598e20466233ce2fb3e824f0f93dfbf233125d3ab09b172c62591ec24dc84049242e364895c3abdbbd843d4a0a188").to_vec()), H160(hex!("7f0d39b8347598e20466233ce2fb3e824f0f93df")), "hunter2",CallOptions::default()
       =>
       "personal_sign", vec![r#""0x7f0d39b8347598e20466233ce2fb3e824f0f93dfbf233125d3ab09b172c62591ec24dc84049242e364895c3abdbbd843d4a0a188""#, r#""0x7f0d39b8347598e20466233ce2fb3e824f0f93df""#, r#""hunter2""#];
       Value::String("0xdac1cba443d72e2088ed0cd2e6608ce696eb4728caf119dcfeea752f57a1163274de0b25007aa70201d0d80190071b26be2287b4a473767e5f7bc443c080b4fc1c".into()) => H520(hex!("dac1cba443d72e2088ed0cd2e6608ce696eb4728caf119dcfeea752f57a1163274de0b25007aa70201d0d80190071b26be2287b4a473767e5f7bc443c080b4fc1c"))

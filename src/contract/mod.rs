@@ -6,6 +6,7 @@ use crate::{
     contract::tokens::{Detokenize, Tokenize},
     futures::Future,
     ic::KeyInfo,
+    transports::ic_http_client::CallOptions,
     types::{
         AccessList, Address, BlockId, Bytes, CallRequest, FilterBuilder, TransactionCondition, TransactionParameters,
         TransactionReceipt, TransactionRequest, H256, U256, U64,
@@ -45,6 +46,7 @@ pub struct Options {
     pub max_fee_per_gas: Option<U256>,
     /// miner bribe
     pub max_priority_fee_per_gas: Option<U256>,
+    pub call_options: Option<CallOptions>,
 }
 
 impl Options {
@@ -68,39 +70,39 @@ pub struct Contract<T: Transport> {
 }
 
 impl<T: Transport> Contract<T> {
-    /// Creates deployment builder for a contract given it's ABI in JSON.
-    pub fn deploy(eth: Eth<T>, json: &[u8]) -> ethabi::Result<deploy::Builder<T>> {
-        let abi = ethabi::Contract::load(json)?;
-        Ok(deploy::Builder {
-            eth,
-            abi,
-            options: Options::default(),
-            confirmations: 1,
-            poll_interval: time::Duration::from_secs(7),
-            linker: HashMap::default(),
-        })
-    }
-
-    /// test
-    pub fn deploy_from_truffle<S>(
-        eth: Eth<T>,
-        json: &[u8],
-        linker: HashMap<S, Address>,
-    ) -> ethabi::Result<deploy::Builder<T>>
-    where
-        S: AsRef<str> + Eq + Hash,
-    {
-        let abi = ethabi::Contract::load(json)?;
-        let linker: HashMap<String, Address> = linker.into_iter().map(|(s, a)| (s.as_ref().to_string(), a)).collect();
-        Ok(deploy::Builder {
-            eth,
-            abi,
-            options: Options::default(),
-            confirmations: 1,
-            poll_interval: time::Duration::from_secs(7),
-            linker,
-        })
-    }
+    // Creates deployment builder for a contract given it's ABI in JSON.
+    //pub fn deploy(eth: Eth<T>, json: &[u8]) -> ethabi::Result<deploy::Builder<T>> {
+    //    let abi = ethabi::Contract::load(json)?;
+    //    Ok(deploy::Builder {
+    //        eth,
+    //        abi,
+    //        options: Options::default(),
+    //        confirmations: 1,
+    //        poll_interval: time::Duration::from_secs(7),
+    //        linker: HashMap::default(),
+    //    })
+    //}
+    //
+    ///// test
+    //pub fn deploy_from_truffle<S>(
+    //    eth: Eth<T>,
+    //    json: &[u8],
+    //    linker: HashMap<S, Address>,
+    //) -> ethabi::Result<deploy::Builder<T>>
+    //where
+    //    S: AsRef<str> + Eq + Hash,
+    //{
+    //    let abi = ethabi::Contract::load(json)?;
+    //    let linker: HashMap<String, Address> = linker.into_iter().map(|(s, a)| (s.as_ref().to_string(), a)).collect();
+    //    Ok(deploy::Builder {
+    //        eth,
+    //        abi,
+    //        options: Options::default(),
+    //        confirmations: 1,
+    //        poll_interval: time::Duration::from_secs(7),
+    //        linker,
+    //    })
+    //}
 }
 
 impl<T: Transport> Contract<T> {
@@ -141,22 +143,26 @@ impl<T: Transport> Contract<T> {
             access_list,
             max_fee_per_gas,
             max_priority_fee_per_gas,
+            call_options,
         } = options;
         self.eth
-            .send_transaction(TransactionRequest {
-                from,
-                to: Some(self.address),
-                gas,
-                gas_price,
-                value,
-                nonce,
-                data: Some(Bytes(data)),
-                condition,
-                transaction_type,
-                access_list,
-                max_fee_per_gas,
-                max_priority_fee_per_gas,
-            })
+            .send_transaction(
+                TransactionRequest {
+                    from,
+                    to: Some(self.address),
+                    gas,
+                    gas_price,
+                    value,
+                    nonce,
+                    data: Some(Bytes(data)),
+                    condition,
+                    transaction_type,
+                    access_list,
+                    max_fee_per_gas,
+                    max_priority_fee_per_gas,
+                },
+                call_options.unwrap_or_default(),
+            )
             .await
             .map_err(Error::from)
     }
@@ -198,6 +204,7 @@ impl<T: Transport> Contract<T> {
             transaction_request,
             poll_interval,
             confirmations,
+            options.call_options.unwrap_or_default(),
         )
         .await
     }
@@ -223,11 +230,17 @@ impl<T: Transport> Contract<T> {
                     max_priority_fee_per_gas: options.max_priority_fee_per_gas,
                 },
                 None,
+                options.call_options.unwrap_or_default(),
             )
             .await
             .map_err(Into::into)
     }
-    pub async fn _estimate_gas(&self, from: Address, tx: &TransactionParameters) -> Result<U256> {
+    pub async fn _estimate_gas(
+        &self,
+        from: Address,
+        tx: &TransactionParameters,
+        call_options: CallOptions,
+    ) -> Result<U256> {
         self.eth
             .estimate_gas(
                 CallRequest {
@@ -243,6 +256,7 @@ impl<T: Transport> Contract<T> {
                     max_priority_fee_per_gas: tx.max_priority_fee_per_gas,
                 },
                 None,
+                call_options,
             )
             .await
             .map_err(Into::into)
@@ -286,6 +300,7 @@ impl<T: Transport> Contract<T> {
                         max_priority_fee_per_gas: options.max_priority_fee_per_gas,
                     },
                     block.into(),
+                    options.call_options.unwrap_or_default(),
                 );
                 (call_future, function)
             });
@@ -300,7 +315,14 @@ impl<T: Transport> Contract<T> {
     }
 
     /// Find events matching the topics.
-    pub async fn events<A, B, C, R>(&self, event: &str, topic0: A, topic1: B, topic2: C) -> Result<Vec<R>>
+    pub async fn events<A, B, C, R>(
+        &self,
+        event: &str,
+        topic0: A,
+        topic1: B,
+        topic2: C,
+        options: CallOptions,
+    ) -> Result<Vec<R>>
     where
         A: Tokenize,
         B: Tokenize,
@@ -331,7 +353,7 @@ impl<T: Transport> Contract<T> {
 
         let logs = self
             .eth
-            .logs(FilterBuilder::default().topic_filter(filter).build())
+            .logs(FilterBuilder::default().topic_filter(filter).build(), options)
             .await?;
         logs.into_iter()
             .map(move |l| {
@@ -389,7 +411,11 @@ mod contract_signing {
                 tx.gas = gas;
             } else {
                 tx.gas = self
-                    ._estimate_gas(Address::from_str(&from.to_string().as_str()).unwrap(), &tx)
+                    ._estimate_gas(
+                        Address::from_str(&from.to_string().as_str()).unwrap(),
+                        &tx,
+                        options.call_options.unwrap_or_default(),
+                    )
                     .await
                     .unwrap();
             }
@@ -412,8 +438,12 @@ mod contract_signing {
             key_info: KeyInfo,
             chain_id: u64,
         ) -> crate::Result<H256> {
-            let signed = self.sign(func, params, options, from, key_info, chain_id).await?;
-            self.eth.send_raw_transaction(signed.raw_transaction).await
+            let signed = self
+                .sign(func, params, options.clone(), from, key_info, chain_id)
+                .await?;
+            self.eth
+                .send_raw_transaction(signed.raw_transaction, options.call_options.unwrap_or_default())
+                .await
         }
 
         // Submit contract call transaction to the transaction pool and wait for the transaction to be included in a block.
@@ -431,13 +461,16 @@ mod contract_signing {
             chain_id: u64,
         ) -> crate::Result<TransactionReceipt> {
             let poll_interval = time::Duration::from_secs(1);
-            let signed = self.sign(func, params, options, from, key_info, chain_id).await?;
+            let signed = self
+                .sign(func, params, options.clone(), from, key_info, chain_id)
+                .await?;
 
             confirm::send_raw_transaction_with_confirmation(
                 self.eth.transport().clone(),
                 signed.raw_transaction,
                 poll_interval,
                 confirmations,
+                options.call_options.unwrap_or_default(),
             )
             .await
         }

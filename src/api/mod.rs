@@ -2,7 +2,6 @@
 
 mod accounts;
 mod eth;
-mod eth_filter;
 mod eth_subscribe;
 mod net;
 mod parity;
@@ -16,7 +15,6 @@ mod web3;
 pub use self::{
     accounts::Accounts,
     eth::Eth,
-    eth_filter::{BaseFilter, EthFilter},
     eth_subscribe::{EthSubscribe, SubscriptionId, SubscriptionStream},
     net::Net,
     parity::Parity,
@@ -30,12 +28,13 @@ pub use self::{
 
 use crate::{
     confirm, error,
+    transports::ic_http_client::CallOptions,
     types::{Bytes, TransactionReceipt, TransactionRequest, U64},
-    DuplexTransport, Transport, RequestId, Error,
+    DuplexTransport, Error, RequestId, Transport,
 };
 use futures::Future;
-use std::time::Duration;
 use jsonrpc_core::types::Call;
+use std::time::Duration;
 
 /// Common API for all namespaces
 pub trait Namespace<T: Transport>: Clone {
@@ -93,11 +92,6 @@ impl<T: Transport> Web3<T> {
         self.api()
     }
 
-    /// Access filter methods from `eth` namespace
-    pub fn eth_filter(&self) -> eth_filter::EthFilter<T> {
-        self.api()
-    }
-
     /// Access methods from `parity` namespace
     pub fn parity(&self) -> parity::Parity<T> {
         self.api()
@@ -128,19 +122,19 @@ impl<T: Transport> Web3<T> {
         self.api()
     }
 
-    /// Should be used to wait for confirmations
-    pub async fn wait_for_confirmations<F, V>(
-        &self,
-        poll_interval: Duration,
-        confirmations: usize,
-        check: V,
-    ) -> error::Result<()>
-    where
-        F: Future<Output = error::Result<Option<U64>>>,
-        V: confirm::ConfirmationCheck<Check = F>,
-    {
-        confirm::wait_for_confirmations(self.eth(), self.eth_filter(), poll_interval, confirmations, check).await
-    }
+    ///// Should be used to wait for confirmations
+    //pub async fn wait_for_confirmations<F, V>(
+    //    &self,
+    //    poll_interval: Duration,
+    //    confirmations: usize,
+    //    check: V,
+    //) -> error::Result<()>
+    //where
+    //    F: Future<Output = error::Result<Option<U64>>>,
+    //    V: confirm::ConfirmationCheck<Check = F>,
+    //{
+    //    confirm::wait_for_confirmations(self.eth(), self.eth_filter(), poll_interval, confirmations, check).await
+    //}
 
     /// Sends transaction and returns future resolved after transaction is confirmed
     pub async fn send_transaction_with_confirmation(
@@ -148,8 +142,10 @@ impl<T: Transport> Web3<T> {
         tx: TransactionRequest,
         poll_interval: Duration,
         confirmations: usize,
+        options: CallOptions,
     ) -> error::Result<TransactionReceipt> {
-        confirm::send_transaction_with_confirmation(self.transport.clone(), tx, poll_interval, confirmations).await
+        confirm::send_transaction_with_confirmation(self.transport.clone(), tx, poll_interval, confirmations, options)
+            .await
     }
 
     /// Sends raw transaction and returns future resolved after transaction is confirmed
@@ -158,16 +154,24 @@ impl<T: Transport> Web3<T> {
         tx: Bytes,
         poll_interval: Duration,
         confirmations: usize,
+        options: CallOptions,
     ) -> error::Result<TransactionReceipt> {
-        confirm::send_raw_transaction_with_confirmation(self.transport.clone(), tx, poll_interval, confirmations).await
+        confirm::send_raw_transaction_with_confirmation(
+            self.transport.clone(),
+            tx,
+            poll_interval,
+            confirmations,
+            options,
+        )
+        .await
     }
 
     /// Call json rpc directly
-    pub async fn json_rpc_call(&self, body: &str) -> error::Result<String> {
+    pub async fn json_rpc_call(&self, body: &str, options: CallOptions) -> error::Result<String> {
         let request: Call = serde_json::from_str(body).map_err(|_| Error::Decoder(body.to_string()))?;
         // currently, the request id is not used
         self.transport
-            .send(RequestId::default(), request)
+            .send(RequestId::default(), request, options)
             .await
             .map(|v| format!("{}", v))
     }

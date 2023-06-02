@@ -5,7 +5,10 @@ use crate::{
     helpers, rpc, RequestId, Transport,
 };
 use futures::future::{self, BoxFuture, FutureExt};
+use ic_cdk::api::management_canister::http_request::TransformContext;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+
+use super::ic_http_client::CallOptions;
 
 type Result<T> = BoxFuture<'static, error::Result<T>>;
 
@@ -26,7 +29,7 @@ impl Transport for TestTransport {
         (self.requests.borrow().len(), request)
     }
 
-    fn send(&self, id: RequestId, request: rpc::Call) -> Result<rpc::Value> {
+    fn send(&self, id: RequestId, request: rpc::Call, options: CallOptions) -> Result<rpc::Value> {
         future::ready(match self.responses.borrow_mut().pop_front() {
             Some(response) => Ok(response),
             None => {
