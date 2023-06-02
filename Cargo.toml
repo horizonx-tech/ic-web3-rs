@@ -2,12 +2,12 @@
 name = "ic-web3"
 version = "0.1.7"
 description = "Ethereum JSON-RPC client for IC canisters."
-homepage = "https://github.com/rocklabs-io/ic-web3"
-repository = "https://github.com/rocklabs-io/ic-web3"
-documentation = "https://docs.rs/ic-web3"
+homepage = "https://github.com/horizonx-tech/ic-web3"
+repository = "https://github.com/horizonx-tech/ic-web3"
+#documentation = "https://docs.rs/ic-web3"
 license = "MIT"
 keywords = ["dfinity", "icp", "web3", "ethereum", "rpc"]
-authors = ["Tomasz Drwięga <tomasz@parity.io>", "Rocklabs <hello@rocklabs.io>"]
+authors = ["Tomasz Drwięga <tomasz@parity.io>", "Rocklabs <hello@rocklabs.io>, hide-yoshi<hideyoshi@horizonx.tech>"]
 readme = "README.md"
 edition = "2018"
 

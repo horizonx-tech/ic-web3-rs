@@ -37,6 +37,7 @@ pub mod contract;
 pub mod error;
 pub mod ic;
 pub mod signing;
+pub mod transforms;
 pub mod transports;
 pub mod types;
 // pub mod tx_helpers;
