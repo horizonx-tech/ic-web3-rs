@@ -16,7 +16,7 @@ Add the following to your `Cargo.toml`:
 
 ```
 [dependencies]
-ic-web3 = { git = "https://github.com/horizonx-tech/ic-web3" }
+ic-web3-rs = { git = "https://github.com/horizonx-tech/ic-web3-rs" }
 ```
 
 ### Examples
