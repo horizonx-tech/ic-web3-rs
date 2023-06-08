@@ -23,7 +23,8 @@ ic-web3-rs = { git = "https://github.com/horizonx-tech/ic-web3-rs" }
 ### Custom HTTP Transformation
 
 This supports custom HTTP transformation, which is useful to avoid `no consensus was reached` errors.
-To use this feature, you need to implement the `HttpTransform` trait and pass it as `CallOptions`.
+This helps when to use the same canister to send multiple kinds of requests to Ethereum networks, such as `eth_getTransactionCount` and `eth_getBalance`, so that the canister must transform different types of responses.
+To use this feature, you need to implement the `TransformContext` trait and pass it as `CallOptions`.
 
 
 ```rust
