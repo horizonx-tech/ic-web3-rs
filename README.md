@@ -19,6 +19,86 @@ Add the following to your `Cargo.toml`:
 ic-web3-rs = { git = "https://github.com/horizonx-tech/ic-web3-rs" }
 ```
 
+
+### Custom HTTP Transformation
+
+This supports custom HTTP transformation, which is useful to avoid `no consensus was reached` errors.
+To use this feature, you need to implement the `HttpTransform` trait and pass it as `CallOptions`.
+
+
+```rust
+use ic_web3::{
+    contract::Options, ethabi::Address, transforms::processors,
+    transforms::transform::TransformProcessor, transports::ic_http_client::CallOptionsBuilder,
+};
+...
+
+#[query]
+#[candid_method(query)]
+fn transform_request(args: TransformArgs) -> HttpResponse {
+    processors::get_filter_changes_processor().transform(args)
+}
+
+fn call_options() -> Options {
+    let call_options = CallOptionsBuilder::default()
+        .transform(Some(TransformContext {
+            function: TransformFunc(candid::Func {
+                principal: ic_cdk::api::id(),
+                method: "transform_request".to_string(),
+            }),
+            context: vec![],
+        }))
+        .max_resp(None)
+        .cycles(None)
+        .build()
+        .unwrap();
+    let mut opts = Options::default();
+    opts.call_options = Some(call_options);
+    opts
+}
+#[update]
+#[candid_method(update)]
+async fn set_value(symbol: String, value: WrappedU256) {
+    struct Dist {
+        nw: SupportedNetwork,
+        addr: Address,
+    }
+
+    for d in ORACLE_ADDRESSES.with(|addresses| {
+        addresses
+            .borrow()
+            .iter()
+            .map(|(&k, &v)| Dist { nw: k, addr: v })
+            .collect::<Vec<Dist>>()
+    }) {
+        let context = ctx(d.nw).unwrap();
+        let oracle = IPriceOracle::new(d.addr.clone(), &context);
+        let res = match oracle
+            .set_price(
+                symbol.to_string().clone(),
+                value.value(),
+                Some(call_options()),
+            )
+            .await
+        {
+            Ok(v) => ic_cdk::println!("set_value: {:?}", v),
+            Err(e) => {
+                ic_cdk::println!("set_value error: {:?}. retry", e);
+                oracle
+                    .set_price(
+                        symbol.to_string().clone(),
+                        value.value(),
+                        Some(call_options()), // This is the custom HTTP transformation
+                    )
+                    .await;
+            }
+        };
+        ic_cdk::println!("set_value: {:?}", res);
+    }
+}
+```
+
+
 ### Examples
 
 Note: you should have dfx 0.11.2 or above.
