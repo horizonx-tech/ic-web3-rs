@@ -69,10 +69,8 @@ impl TransformProcessor for SingleResultTransformProcessor {
 pub mod tests {
     use std::{str::FromStr, vec};
 
-    use ic_cdk::{
-        api::management_canister::http_request::{HttpResponse, TransformArgs},
-        export::candid::Nat,
-    };
+    use candid::Nat;
+    use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 
     use crate::transforms::transform::{
         ArrayResultTransformProcessor, SingleResultTransformProcessor, TransformProcessor,

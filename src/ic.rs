@@ -2,12 +2,9 @@
 
 use crate::signing;
 use crate::types::{Address, Recovery};
-use ic_cdk::export::{
-    candid::CandidType,
-    serde::{Deserialize, Serialize},
-    Principal,
-};
+use candid::{CandidType, Principal};
 use libsecp256k1::{recover, Message, PublicKey, PublicKeyFormat, RecoveryId, Signature};
+use serde::Serialize;
 use std::str::FromStr;
 
 const ECDSA_SIGN_CYCLES: u64 = 3 * 10_000_000_000;
