@@ -28,6 +28,12 @@ impl Tokenizable for I256 {
     }
 }
 
+impl fmt::Display for I256 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0.to_string())
+    }
+}
+
 impl fmt::Debug for I256 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "I256({})", self.0)
@@ -43,6 +49,18 @@ fn to_bigint_from_u256(val: U256) -> BigInt {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_i256_display() {
+        let val = I256(BigInt::from(-123));
+        assert_eq!(val.to_string(), "-123");
+    }
+
+    #[test]
+    fn test_i256_debug() {
+        let val = I256(BigInt::from(-123));
+        assert_eq!(format!("{:?}", val), "I256(-123)");
+    }
 
     #[test]
     fn test_to_max_bigint_from_u256() {
