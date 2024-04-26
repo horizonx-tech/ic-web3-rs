@@ -90,6 +90,11 @@ impl<T: Transport> Eth<T> {
         CallFuture::new(self.transport.execute("eth_estimateGas", args, options))
     }
 
+    // Returns a fee per gas that is an estimate of how much you can pay as a priority fee, or 'tip', to get a transaction included in the current block. This method was introduced in EIP-1559.
+    pub fn max_priority_fee_per_gas(&self, options: CallOptions) -> CallFuture<U256, T::Out> {
+        CallFuture::new(self.transport.execute("eth_maxPriorityFeePerGas", vec![], options))
+    }
+
     /// Get current recommended gas price
     pub fn gas_price(&self, options: CallOptions) -> CallFuture<U256, T::Out> {
         CallFuture::new(self.transport.execute("eth_gasPrice", vec![], options))
@@ -704,6 +709,11 @@ mod tests {
       Value::String("0x123".into()) => 0x123
     );
 
+    rpc_test! {
+      Eth:max_priority_fee_per_gas, CallOptions::default() => "eth_maxPriorityFeePerGas", Vec::<String>::new();
+      Value::String("0x123".into()) => 0x123
+    }
+
     rpc_test! (
       Eth:fee_history, 0x3, BlockNumber::Latest, None,CallOptions::default() => "eth_feeHistory", vec![r#""0x3""#, r#""latest""#, r#"null"#];
       ::serde_json::from_str(EXAMPLE_FEE_HISTORY).unwrap()
@@ -716,7 +726,6 @@ mod tests {
       "eth_getBalance", vec![r#""0x0000000000000000000000000000000000000123""#, r#""latest""#];
       Value::String("0x123".into()) => 0x123
     );
-
     rpc_test! (
       Eth:logs, FilterBuilder::default().build(), CallOptions::default() => "eth_getLogs", vec!["{}"];
       Value::Array(vec![::serde_json::from_str(EXAMPLE_LOG).unwrap()])
