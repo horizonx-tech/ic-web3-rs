@@ -128,30 +128,16 @@ mod accounts_signing {
             key_info: KeyInfo,
             chain_id: u64,
         ) -> error::Result<SignedTransaction> {
-            let gas_price = match tx.transaction_type {
-                Some(tx_type) if tx_type == U64::from(EIP1559_TX_ID) && tx.max_fee_per_gas.is_some() => {
-                    tx.max_fee_per_gas.unwrap()
-                }
-                _ => tx.gas_price.unwrap(),
-            };
-
-            let max_priority_fee_per_gas = match tx.transaction_type {
-                Some(tx_type) if tx_type == U64::from(EIP1559_TX_ID) => {
-                    tx.max_priority_fee_per_gas.unwrap_or(gas_price)
-                }
-                _ => gas_price,
-            };
-
             let tx = Transaction {
                 to: tx.to,
                 nonce: tx.nonce.unwrap(),
                 gas: tx.gas,
-                gas_price,
+                gas_price: tx.gas_price,
                 value: tx.value,
                 data: tx.data.0,
                 transaction_type: tx.transaction_type,
                 access_list: tx.access_list.unwrap_or_default(),
-                max_priority_fee_per_gas,
+                max_priority_fee_per_gas: tx.max_priority_fee_per_gas,
             };
 
             let signed = tx.sign(from, key_info, chain_id).await;
@@ -227,18 +213,18 @@ mod accounts_signing {
         pub to: Option<Address>,
         pub nonce: U256,
         pub gas: U256,
-        pub gas_price: U256,
+        pub gas_price: Option<U256>,
         pub value: U256,
         pub data: Vec<u8>,
         pub transaction_type: Option<U64>,
         pub access_list: AccessList,
-        pub max_priority_fee_per_gas: U256,
+        pub max_priority_fee_per_gas: Option<U256>,
     }
 
     impl Transaction {
         fn rlp_append_legacy(&self, stream: &mut RlpStream) {
             stream.append(&self.nonce);
-            stream.append(&self.gas_price);
+            stream.append(&self.gas_price.unwrap());
             stream.append(&self.gas);
             if let Some(to) = self.to {
                 stream.append(&to);
@@ -295,8 +281,13 @@ mod accounts_signing {
             stream.append(&chain_id);
 
             stream.append(&self.nonce);
+            if let Some(max_priority_fee_per_gas) = self.max_priority_fee_per_gas {
+                stream.append(&self.max_priority_fee_per_gas);
+            }
             stream.append(&self.max_priority_fee_per_gas);
-            stream.append(&self.gas_price);
+            if let Some(gas_price) = self.gas_price {
+                stream.append(&self.gas_price);
+            }
             stream.append(&self.gas);
             if let Some(to) = self.to {
                 stream.append(&to);
