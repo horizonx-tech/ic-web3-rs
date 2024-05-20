@@ -7,7 +7,10 @@ repository = "https://github.com/horizonx-tech/ic-web3"
 #documentation = "https://docs.rs/ic-web3"
 license = "MIT"
 keywords = ["dfinity", "icp", "web3", "ethereum", "rpc"]
-authors = ["Tomasz Drwięga <tomasz@parity.io>", "Rocklabs <hello@rocklabs.io>, hide-yoshi<hideyoshi@horizonx.tech>"]
+authors = [
+    "Tomasz Drwięga <tomasz@parity.io>",
+    "Rocklabs <hello@rocklabs.io>, hide-yoshi<hideyoshi@horizonx.tech>",
+]
 readme = "README.md"
 edition = "2018"
 
@@ -29,9 +32,9 @@ serde_json = "1.0.39"
 tiny-keccak = { version = "2.0.1", features = ["keccak"] }
 pin-project = "1.0"
 # ic related
-ic-cdk = "0.11.3"
-ic-cdk-macros = "0.8.1"
-candid = "0.9.6"
+ic-cdk = "0.13.2"
+ic-cdk-macros = "0.13.2"
+candid = "^0.10.4"
 
 
 # Optional deps
@@ -59,7 +62,9 @@ js-sys = { version = "0.3.45", optional = true }
 ### This is a transitive dependency, only here so we can turn on its wasm_bindgen feature
 rand = { version = "0.8.1", optional = true }
 getrandom = { version = "0.2", features = ["custom"] }
-wasm-bindgen = { version = "0.2.68", optional = true, features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.68", optional = true, features = [
+    "serde-serialize",
+] }
 wasm-bindgen-futures = { version = "0.4.18", optional = true }
 derive_builder = "0.12.0"
 num-bigint = "0.4.4"
