@@ -1,3 +1,4 @@
+use candid::Nat;
 use derive_builder::Builder;
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 use serde_json::Value;
@@ -19,7 +20,7 @@ pub trait TransformProcessor {
             status: raw.response.status.clone(),
             ..Default::default()
         };
-        if res.status == 200 {
+        if res.status == Nat::from(200u8) {
             res.body = self.process_body(&raw.response.body);
         } else {
             ic_cdk::api::print(format!("Received an error from blockchain: err = {:?}", raw));
