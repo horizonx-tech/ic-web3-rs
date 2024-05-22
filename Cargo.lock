@@ -971,7 +971,7 @@ dependencies = [
 
 [[package]]
 name = "ic-web3-rs"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "arrayvec 0.7.2",
  "async-std",
