@@ -439,7 +439,17 @@ mod contract_signing {
             chain_id: u64,
         ) -> crate::Result<H256> {
             let signed = self
-                .sign(func, params, options.clone(), from, key_info, chain_id)
+                .sign(
+                    func,
+                    params,
+                    Options {
+                        call_options: None,
+                        ..options.clone()
+                    },
+                    from,
+                    key_info,
+                    chain_id,
+                )
                 .await?;
             self.eth
                 .send_raw_transaction(signed.raw_transaction, options.call_options.unwrap_or_default())
@@ -462,7 +472,17 @@ mod contract_signing {
         ) -> crate::Result<TransactionReceipt> {
             let poll_interval = time::Duration::from_secs(1);
             let signed = self
-                .sign(func, params, options.clone(), from, key_info, chain_id)
+                .sign(
+                    func,
+                    params,
+                    Options {
+                        call_options: None,
+                        ..options.clone()
+                    },
+                    from,
+                    key_info,
+                    chain_id,
+                )
                 .await?;
 
             confirm::send_raw_transaction_with_confirmation(
