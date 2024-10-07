@@ -453,7 +453,8 @@ mod contract_signing {
                 .await?;
             self.eth
                 .send_raw_transaction(signed.raw_transaction, options.call_options.unwrap_or_default())
-                .await
+                .await?;
+            Ok(signed.transaction_hash)
         }
 
         // Submit contract call transaction to the transaction pool and wait for the transaction to be included in a block.
