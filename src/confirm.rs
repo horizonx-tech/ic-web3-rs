@@ -135,6 +135,14 @@ where
     send_transaction_with_confirmation_(hash, transport, poll_interval, confirmations, options).await
 }
 
+pub async fn get_transaction_receipt<T: Transport>(
+    transport: T,
+    hash: H256,
+    options: CallOptions,
+) -> error::Result<Option<TransactionReceipt>> {
+    Eth::new(&transport).transaction_receipt(hash, options).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::send_transaction_with_confirmation;
