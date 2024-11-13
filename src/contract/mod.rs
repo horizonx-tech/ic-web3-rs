@@ -420,7 +420,7 @@ mod contract_signing {
                 {
                     Ok(gas) => gas,
                     Err(e) => {
-                        return Err(e.to_string().into());
+                        return Err(e.into());
                     }
                 }
             };
