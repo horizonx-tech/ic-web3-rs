@@ -407,18 +407,23 @@ mod contract_signing {
                 max_priority_fee_per_gas: options.max_priority_fee_per_gas,
                 ..Default::default()
             };
-            if let Some(gas) = options.gas {
-                tx.gas = gas;
+            tx.gas = if let Some(gas) = options.gas {
+                gas
             } else {
-                tx.gas = self
+                match self
                     ._estimate_gas(
                         Address::from_str(&from.to_string().as_str()).unwrap(),
                         &tx,
                         options.call_options.unwrap_or_default(),
                     )
                     .await
-                    .unwrap();
-            }
+                {
+                    Ok(gas) => gas,
+                    Err(e) => {
+                        return Err(e.into());
+                    }
+                }
+            };
             if let Some(value) = options.value {
                 tx.value = value;
             }

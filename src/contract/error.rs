@@ -35,6 +35,17 @@ impl std::error::Error for Error {
     }
 }
 
+impl From<Error> for crate::error::Error {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::InvalidOutputType(s) => crate::error::Error::InvalidResponse(s),
+            Error::Abi(eth_error) => crate::error::Error::Decoder(format!("{}", eth_error)),
+            Error::Api(api_error) => api_error,
+            Error::InterfaceUnsupported => crate::error::Error::Internal,
+        }
+    }
+}
+
 pub mod deploy {
     use crate::{error::Error as ApiError, types::H256};
     use derive_more::{Display, From};
